@@ -153,6 +153,7 @@ if __name__ == "__main__":
     # Datos meteorológicos ()
     d_warehouse.crear_tb(
         nomb=TABLA_MET,
+        id_auto=False,
         cols_type={
             "date" :                    "DATE",
             "time" :                    "TIME",
@@ -170,7 +171,8 @@ if __name__ == "__main__":
             "windspeed_10m" :            "FLOAT",
             "winddir_cardinal_10m" :     "CHAR",
             "winddirection_10m"  :       "FLOAT",
-            "windgusts_10m" :            "FLOAT"
+            "windgusts_10m" :            "FLOAT",
+            "PRIMARY KEY ": "(date, time)"
         })
     d_warehouse.cargar_df(TABLA_MET, tb_salida)
 
