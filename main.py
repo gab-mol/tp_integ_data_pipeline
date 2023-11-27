@@ -338,7 +338,7 @@ class PgSql:
                     name=nomb,
                     con=con,
                     schema=self.squ,
-                    if_exists="append",
+                    if_exists="replace",
                     index=False,
                     method="multi",
                     chunksize=1000
