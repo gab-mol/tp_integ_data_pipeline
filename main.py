@@ -291,7 +291,7 @@ class PgSql:
                     raise Exception("ERROR AL CREAR ESQUEMA PARA TABLAS")
     
    
-    def crear_tb(self, nomb:str,cols_type:dict, id_auto=True):
+    def crear_tb(self, nomb:str,cols_type:dict, id_auto=True, stg=False):
         
         '''Crea la tabla en base de datos con el nombre 
         y columnas/tipo dato especificado, `si esta NO existe`.
@@ -320,8 +320,31 @@ class PgSql:
                 con.commit()
         except:
             Exception("PostgreSQL error")
+        
+    def cargar_df(self, nomb:str, df:pandas.DataFrame):
 
-    def cargar_df(self, nomb:str, df:pandas.DataFrame, update:str):
+        '''Cargar dataframe a tabla especificada.
+
+        args
+            nomb: nombre de la tabla.
+            df: dataframe a cargar.'''
+
+        try:
+            with self.engine.connect() as con, con.begin():
+                print("Conectando con postgreSQL...")
+                df.to_sql(
+                    name=nomb,
+                    con=con,
+                    schema=self.squ,
+                    if_exists="append",
+                    index=False,
+                    method="multi",
+                    chunksize=1000
+                )
+        except:
+            raise Exception("Error de carga: pandas.Dataframe >> postgreSQL")
+
+    def cargar_df2(self, nomb:str, nomb_id:str, df:pandas.DataFrame, update:str):
 
         '''Cargar dataframe a tabla especificada.
 
@@ -330,15 +353,29 @@ class PgSql:
             df: dataframe a cargar.
             update: `append` para agregar registros a tabla. 
             `scd1` para usar estrategia SCD1 de control de fecha de actualizaciones '''
-        
+        ""
         if update =="append":
             try:
                 with self.engine.connect() as con, con.begin():
-                    print("Conectando con postgreSQL...")
-                    con.execute(sqlalchemy.text('''
-                        MERGE INTO {celulares_scd1}
-                        USING stg_celulares AS celulares
-                        ON (celulares.id = celulares_scd1.id)
+                    df.to_sql(
+                        name=nomb,
+                        con=con,
+                        schema=self.squ,
+                        if_exists="append",
+                        index=False,
+                        method="multi",
+                        chunksize=1000
+                    )
+            except:
+                raise Exception("Error de carga: pandas.Dataframe >> postgreSQL")
+            
+        elif update == "scd1":
+            try:
+                with self.engine.connect() as con, con.begin():
+                    con.execute(sqlalchemy.text(f'''
+                        MERGE INTO {nomb}
+                        USING {nomb} AS tabla
+                        ON (tabla.{nomb_id} = tabla.id)
                         WHEN MATCHED THEN
                             UPDATE SET
                                 marca = celulares.marca,
@@ -368,8 +405,19 @@ class PgSql:
                     )
             except:
                 raise Exception("Error de carga: pandas.Dataframe >> postgreSQL")
-        elif update == "scd1":
-            ...
+        
+    def ejec_query(self, query:str, commit=True):
+
+        '''Crea conexión con el motor instanciado y 
+        envia query.'''
+
+        try:
+            with self.engine.connect() as con, con.begin():
+                con.execute(sqlalchemy.text(query))
+                if commit: con.commit()
+        except:
+            raise Exception("Error al ejecutar sentencia SQL")
+
 
     def impr_tabla(self, nomb:str):
 

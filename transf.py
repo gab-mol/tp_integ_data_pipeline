@@ -6,6 +6,7 @@ Alumno: Molina Gabriel
 '''
 import pandas as pd
 import numpy as np
+from datetime import date
 
 from main import PgSql, DataLake
 
@@ -115,42 +116,142 @@ if __name__ == "__main__":
     # Reemplazar None por nan en 'admin3'
     df_locs['admin3'].replace('None', np.nan, inplace=True)
 
-
+    # agregar columna con fecha de origen registro
+    df_locs["fecha_actualizacion"] = date.today()
+    print(
+        df_locs.dtypes,
+        df_locs.columns
+    )
+    #df_locs.to_excel("ver.xlsx")
     ##### cargar a Data WareHouse #####
 
     d_warehouse = PgSql()
     TABLA_MET = "meteor_proc"
     TABLA_LOC = "loc_proc"
+    TABLA_LOC_STG = TABLA_LOC+"_stg"
 
+    # tabla stage para scd1
+    d_warehouse.crear_tb(
+          nomb=TABLA_LOC_STG,
+          cols_type={
+                'ID': "INT PRIMARY KEY NOT NULL",
+                'name':"TEXT",
+                'latitude':"FLOAT",
+                'longitude':"FLOAT",
+                'elevation':"FLOAT",
+                'feature_code':"TEXT",
+                'country_code':"TEXT",
+                'admin1_id':"FLOAT",
+                'admin2_id':"FLOAT",
+                'timezone':"TEXT",
+                'population':"INT",
+                'country_id':"INT",
+                'country':"TEXT",
+                'admin1':"TEXT",
+                'admin2':"TEXT",
+                'postcodes':"INT",
+                'admin3_id':"INT",
+                'admin3':"TEXT",
+                "fecha_actualizacion": "DATE"
+          },
+          id_auto=False
+    )
+
+    # tabla datos localidad
     d_warehouse.crear_tb(
           nomb=TABLA_LOC,
           cols_type={
                 'ID': "INT PRIMARY KEY NOT NULL",
-                'name':"CHAR",
+                'name':"TEXT",
                 'latitude':"FLOAT",
                 'longitude':"FLOAT",
                 'elevation':"FLOAT",
-                'feature_code':"CHAR",
-                'country_code':"CHAR",
+                'feature_code':"TEXT",
+                'country_code':"TEXT",
                 'admin1_id':"FLOAT",
                 'admin2_id':"FLOAT",
-                'timezone':"CHAR",
+                'timezone':"TEXT",
                 'population':"INT",
                 'country_id':"INT",
-                'country':"CHAR",
-                'admin1':"CHAR",
-                'admin2':"CHAR",
+                'country':"TEXT",
+                'admin1':"TEXT",
+                'admin2':"TEXT",
                 'postcodes':"INT",
                 'admin3_id':"INT",
-                'admin3':"CHAR"
+                'admin3':"TEXT",
+                "fecha_actualizacion_origen": "DATE",
+                "fecha_actualizacion": "DATE"
           },
           id_auto=False
     )
-    d_warehouse.cargar_df(TABLA_LOC, df_locs)
+
+    # Ejecutar estrategia de actualización SCD 1
+
+    #  cargar dataframe en tabla stage
+    d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
+    d_warehouse.cargar_df(TABLA_LOC_STG, df_locs)
+
+    #  actualizar tabla condicionalmente
+    d_warehouse.ejec_query(f'''
+        MERGE INTO {TABLA_LOC}
+                    USING {TABLA_LOC_STG} AS stg
+                    ON (stg.ID = {TABLA_LOC}.ID)
+                    WHEN MATCHED THEN
+                        UPDATE SET
+                            name= stg.name,
+                            latitude= stg.latitude,
+                            longitude= stg.longitude,
+                            elevation= stg.elevation,
+                            feature_code= stg.feature_code,
+                            country_code= stg.country_code,
+                            admin1_id= stg.admin1_id,
+                            admin2_id= stg.admin2_id,
+                            timezone= stg.timezone,
+                            population= stg.population,
+                            country_id= stg.country_id,
+                            country= stg.country,
+                            admin1= stg.admin1,
+                            admin2= stg.admin2,
+                            postcodes= stg.postcodes,
+                            admin3_id= stg.admin3_id,
+                            admin3= stg.admin3,
+                            fecha_actualizacion_origen = stg.fecha_actualizacion,
+                            fecha_actualizacion = CURRENT_DATE
+                    WHEN NOT MATCHED THEN
+                        INSERT ( ID, name, latitude,longitude, elevation, feature_code, 
+                        country_code, admin1_id, admin2_id, timezone, population, country_id, 
+                        country, admin1, admin2, postcodes, admin3_id, admin3, 
+                        fecha_actualizacion_origen, fecha_actualizacion)
+                        VALUES (
+                            stg.ID, 
+                            stg.name, 
+                            stg.latitude,
+                            stg.longitude,
+                            stg.elevation,
+                            stg.feature_code, 
+                            stg.country_code, 
+                            stg.admin1_id, 
+                            stg.admin2_id, 
+                            stg.timezone, 
+                            stg.population, 
+                            stg.country_id, 
+                            stg.country, 
+                            stg.admin1, 
+                            stg.admin2, 
+                            stg.postcodes, 
+                            stg.admin3_id, 
+                            stg.admin3,
+                            stg.fecha_actualizacion,
+                            CURRENT_DATE
+                        );
+    ''')
+
+    
+
     print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_LOC}'\n")
     d_warehouse.impr_tabla(TABLA_LOC)
 
-    # Datos meteorológicos ()
+    # Datos meteorológicos NOTA: creo que va a haber que crear una tabla stage y comparar claves primarias
     d_warehouse.crear_tb(
         nomb=TABLA_MET,
         id_auto=False,
@@ -172,8 +273,10 @@ if __name__ == "__main__":
             "winddir_cardinal_10m" :     "CHAR",
             "winddirection_10m"  :       "FLOAT",
             "windgusts_10m" :            "FLOAT",
+            "fecha_actualizacion": "DATE",
             "PRIMARY KEY ": "(date, time)"
         })
+    
     d_warehouse.cargar_df(TABLA_MET, tb_salida)
 
     print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_MET}'\n")
