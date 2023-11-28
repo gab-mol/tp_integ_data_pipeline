@@ -44,7 +44,7 @@ if __name__ == "__main__":
     df_meteor.time = df_meteor.time - pd.Timedelta(hours=3)
 
     # Formateo  y separación en fecha y hora (str / object)
-    df_meteor["date"] = df_meteor["time"].dt.strftime("%d/%m/%Y")
+    df_meteor["date"] = df_meteor["time"].dt.strftime("%Y-%d-%m") #HINT:  Perhaps you need a different "datestyle" setting.
     df_meteor["time"] = df_meteor["time"].dt.strftime("%H:%M")
 
     # "winddirection_10m" (en grados N=0, sentido horario) a puntos 
@@ -245,8 +245,6 @@ if __name__ == "__main__":
                             CURRENT_DATE
                         );
     ''')
-
-    
 
     print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_LOC}'\n")
     d_warehouse.impr_tabla(TABLA_LOC)
