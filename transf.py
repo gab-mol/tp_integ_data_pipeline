@@ -127,6 +127,7 @@ if __name__ == "__main__":
 
     d_warehouse = PgSql()
     TABLA_MET = "meteor_proc"
+    TABLA_MET_STG = TABLA_MET+"_stg"
     TABLA_LOC = "loc_proc"
     TABLA_LOC_STG = TABLA_LOC+"_stg"
 
@@ -250,10 +251,9 @@ if __name__ == "__main__":
     d_warehouse.impr_tabla(TABLA_LOC)
 
     # Datos meteorológicos NOTA: creo que va a haber que crear una tabla stage y comparar claves primarias
-    d_warehouse.crear_tb(
-        nomb=TABLA_MET,
-        id_auto=False,
-        cols_type={
+    
+
+    campos_met = {
             "date" :                    "DATE",
             "time" :                    "TIME",
             "city" :                     "CHAR",
@@ -271,11 +271,64 @@ if __name__ == "__main__":
             "winddir_cardinal_10m" :     "CHAR",
             "winddirection_10m"  :       "FLOAT",
             "windgusts_10m" :            "FLOAT",
-            "fecha_actualizacion": "DATE",
             "PRIMARY KEY ": "(date, time)"
-        })
+        }
     
-    d_warehouse.cargar_df(TABLA_MET, tb_salida)
+    # tabla stage para evitar repetición de registros
+    d_warehouse.crear_tb(
+        nomb=TABLA_MET_STG,
+        id_auto=False,
+        cols_type=campos_met
+    )
+
+    # tabla propiamente dicha 
+    d_warehouse.crear_tb(
+        nomb=TABLA_MET,
+        id_auto=False,
+        cols_type=campos_met
+    )
+    
+    # Datafreame a SQL (stage)
+    d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_MET_STG}''')
+    print(tb_salida)
+    d_warehouse.cargar_df(TABLA_MET_STG, tb_salida)
+    d_warehouse.impr_tabla(TABLA_MET_STG)
+    print("\n##############################################################")
+    # Agregar nuevos registros si no existen 
+    ########## DATE: SE ESTÁN INSERTANDO CON '' !!!!################
+    d_warehouse.ejec_query(f'''
+        SET datestyle = Ymd;
+        MERGE INTO {TABLA_MET}
+                    USING {TABLA_MET_STG} AS stg
+                    ON (stg.date = {TABLA_MET}.date) AND  (stg.time = {TABLA_MET}.time)
+                    WHEN MATCHED THEN
+                        DO NOTHING
+                    WHEN NOT MATCHED THEN
+                        INSERT (date, time, city, country, api_loc_id, interval, 
+                        temperature_2m, relativehumidity_2m, apparent_temperature, 
+                        is_day, precipitation, rain, pressure_msl, windspeed_10m, 
+                        winddir_cardinal_10m, winddirection_10m, windgusts_10m)
+                        VALUES (
+                            stg.date, 
+                            stg.time, 
+                            stg.city, 
+                            stg.country, 
+                            stg.api_loc_id, 
+                            stg.interval, 
+                            stg.temperature_2m, 
+                            stg.relativehumidity_2m, 
+                            stg.apparent_temperature, 
+                            stg.is_day, 
+                            stg.precipitation, 
+                            stg.rain, 
+                            stg.pressure_msl, 
+                            stg.windspeed_10m, 
+                            stg.winddir_cardinal_10m, 
+                            stg.winddirection_10m, 
+                            stg.windgusts_10m
+                        );
+    
+    ''')
 
     print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_MET}'\n")
     d_warehouse.impr_tabla(TABLA_MET)
