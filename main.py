@@ -321,13 +321,14 @@ class PgSql:
         except:
             Exception("PostgreSQL error")
         
-    def cargar_df(self, nomb:str, df:pandas.DataFrame):
+    def cargar_df(self, nomb:str, df:pandas.DataFrame, method=None):
 
         '''Cargar dataframe a tabla especificada.
 
         args
             nomb: nombre de la tabla.
-            df: dataframe a cargar.'''
+            df: dataframe a cargar.
+            method: {None, 'multi', callable},'''
 
         try:
             with self.engine.connect() as con, con.begin():
@@ -338,7 +339,7 @@ class PgSql:
                     schema=self.squ,
                     if_exists="append",
                     index=False,
-                    method="multi",
+                    method=method,
                     chunksize=1000
                 )
         except:

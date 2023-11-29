@@ -44,7 +44,7 @@ if __name__ == "__main__":
     df_meteor.time = df_meteor.time - pd.Timedelta(hours=3)
 
     # Formateo  y separación en fecha y hora (str / object)
-    df_meteor["date"] = df_meteor["time"].dt.strftime("%Y-%d-%m") #HINT:  Perhaps you need a different "datestyle" setting.
+    df_meteor["date"] = df_meteor["time"].dt.strftime("%d/%m/%Y") #HINT:  Perhaps you need a different "datestyle" setting.
     df_meteor["time"] = df_meteor["time"].dt.strftime("%H:%M")
 
     # "winddirection_10m" (en grados N=0, sentido horario) a puntos 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
 
     #  cargar dataframe en tabla stage
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
-    d_warehouse.cargar_df(TABLA_LOC_STG, df_locs)
+    d_warehouse.cargar_df(TABLA_LOC_STG, df_locs, method="multi")
 
     #  actualizar tabla condicionalmente
     d_warehouse.ejec_query(f'''
@@ -246,18 +246,19 @@ if __name__ == "__main__":
                             CURRENT_DATE
                         );
     ''')
-
+    
+    d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
     print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_LOC}'\n")
     d_warehouse.impr_tabla(TABLA_LOC)
 
     # Datos meteorológicos NOTA: creo que va a haber que crear una tabla stage y comparar claves primarias
-    
+    print("\n##############################################################\n")
 
     campos_met = {
             "date" :                    "DATE",
             "time" :                    "TIME",
-            "city" :                     "CHAR",
-            "country"      :            "CHAR",
+            "city" :                     "TEXT",
+            "country"      :            "TEXT",
             "api_loc_id":                "INT",
             "interval":                  "INT",
             "temperature_2m":            "FLOAT",
@@ -268,7 +269,7 @@ if __name__ == "__main__":
             "rain" :                     "FLOAT",
             "pressure_msl" :             "FLOAT",
             "windspeed_10m" :            "FLOAT",
-            "winddir_cardinal_10m" :     "CHAR",
+            "winddir_cardinal_10m" :     "TEXT",
             "winddirection_10m"  :       "FLOAT",
             "windgusts_10m" :            "FLOAT",
             "PRIMARY KEY ": "(date, time)"
@@ -287,17 +288,15 @@ if __name__ == "__main__":
         id_auto=False,
         cols_type=campos_met
     )
-    
+
+    d_warehouse.ejec_query("SET DATESTYLE TO European")
+
     # Datafreame a SQL (stage)
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_MET_STG}''')
-    print(tb_salida)
     d_warehouse.cargar_df(TABLA_MET_STG, tb_salida)
-    d_warehouse.impr_tabla(TABLA_MET_STG)
-    print("\n##############################################################")
+
     # Agregar nuevos registros si no existen 
-    ########## DATE: SE ESTÁN INSERTANDO CON '' !!!!################
     d_warehouse.ejec_query(f'''
-        SET datestyle = Ymd;
         MERGE INTO {TABLA_MET}
                     USING {TABLA_MET_STG} AS stg
                     ON (stg.date = {TABLA_MET}.date) AND  (stg.time = {TABLA_MET}.time)
@@ -329,6 +328,7 @@ if __name__ == "__main__":
                         );
     
     ''')
+    d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_MET_STG}''')
 
     print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_MET}'\n")
     d_warehouse.impr_tabla(TABLA_MET)
