@@ -13,7 +13,7 @@ from main import DataLake, Extrac, Autom
 
 if __name__ == "__main__":
     print("\nCurso Data Engineer - UTN\n## Extracción de datos ##\n")
-    localid = "La Plata"
+    localid = "Berlín"
     
     print(f"Extracción de información geografica (full)\n EJ: {localid}")
     

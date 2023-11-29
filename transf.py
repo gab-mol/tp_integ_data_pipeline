@@ -108,7 +108,22 @@ if __name__ == "__main__":
 
 
     ### Datos localidad
-
+    
+    # API BORRA los campos vacíos: verificar por consitencia
+    max_campos = ['id', 'name', 'latitude', 'longitude', 'elevation',
+        'feature_code', 'country_code', 'admin1_id', 'admin2_id', 
+        'admin3_id', 'admin4_id', 'timezone', 'population', 'postcodes', 
+        'country_id', 'country', 'admin1', 'admin2', 'admin3', 'admin4']
+    
+    campos_loc = list(df_locs.columns)
+    
+    for camp in max_campos:
+        if camp not in campos_loc:
+            df_locs[camp] = None
+            
+    # reordenar
+    df_locs = df_locs[max_campos]
+    
     # Castear a str y formatear 'postcodes'
     print(df_locs.columns)
     df_locs["postcodes"] = df_locs["postcodes"].astype(str)
@@ -118,12 +133,13 @@ if __name__ == "__main__":
     df_locs["postcodes"] = df_locs["postcodes"].str.replace('"', "")
     df_locs['postcodes'].replace('None', np.nan, inplace=True)
     
-    # Reemplazar None por nan en 'admin3'
-    df_locs['admin3'].replace('None', np.nan, inplace=True)
+    # Reemplazar None por nan en 'admin'
+    for i in ["admin1","admin2","admin3","admin4"]:
+        df_locs[i].replace('None', np.nan, inplace=True)
 
     # agregar columna con fecha de origen registro
     df_locs["fecha_actualizacion"] = date.today()
-
+    print("FIN FORMATEO:",df_locs)
     ##### cargar a Data WareHouse #####
 
     d_warehouse = PgSql()
@@ -142,7 +158,7 @@ if __name__ == "__main__":
           nomb=TABLA_LOC_STG,
           cols_type={
                 'ID': "INT PRIMARY KEY NOT NULL",
-                'name':"TEXT",
+                'name': "TEXT",
                 'latitude':"FLOAT",
                 'longitude':"FLOAT",
                 'elevation':"FLOAT",
@@ -150,15 +166,17 @@ if __name__ == "__main__":
                 'country_code':"TEXT",
                 'admin1_id':"FLOAT",
                 'admin2_id':"FLOAT",
+                'admin3_id':"FLOAT",
+                'admin4_id':"FLOAT",
                 'timezone':"TEXT",
                 'population':"INT",
+                'postcodes':"INT",
                 'country_id':"INT",
                 'country':"TEXT",
                 'admin1':"TEXT",
                 'admin2':"TEXT",
-                'postcodes':"INT",
-                'admin3_id':"INT",
                 'admin3':"TEXT",
+                'admin4':"TEXT",
                 "fecha_actualizacion": "DATE"
           },
           id_auto=False
@@ -169,7 +187,7 @@ if __name__ == "__main__":
           nomb=TABLA_LOC,
           cols_type={
                 'ID': "INT PRIMARY KEY NOT NULL",
-                'name':"TEXT",
+                'name': "TEXT",
                 'latitude':"FLOAT",
                 'longitude':"FLOAT",
                 'elevation':"FLOAT",
@@ -177,15 +195,17 @@ if __name__ == "__main__":
                 'country_code':"TEXT",
                 'admin1_id':"FLOAT",
                 'admin2_id':"FLOAT",
+                'admin3_id':"FLOAT",
+                'admin4_id':"FLOAT",
                 'timezone':"TEXT",
                 'population':"INT",
+                'postcodes':"INT",
                 'country_id':"INT",
                 'country':"TEXT",
                 'admin1':"TEXT",
                 'admin2':"TEXT",
-                'postcodes':"INT",
-                'admin3_id':"INT",
                 'admin3':"TEXT",
+                'admin4':"TEXT",
                 "fecha_actualizacion_origen": "DATE",
                 "fecha_actualizacion": "DATE"
           },
@@ -196,6 +216,7 @@ if __name__ == "__main__":
 
     #  cargar dataframe en tabla stage
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
+    df_locs.to_excel("ver.xlsx")
     d_warehouse.cargar_df(TABLA_LOC_STG, df_locs, method="multi")
 
     #  actualizar tabla condicionalmente
@@ -212,7 +233,9 @@ if __name__ == "__main__":
                         feature_code= stg.feature_code,
                         country_code= stg.country_code,
                         admin1_id= stg.admin1_id,
-                        admin2_id= stg.admin2_id,
+                        admin2_id= stg.admin2_id,,
+                        admin3_id= stg.admin3_id,
+                        admin4_id= stg.admin4_id,
                         timezone= stg.timezone,
                         population= stg.population,
                         country_id= stg.country_id,
@@ -220,16 +243,20 @@ if __name__ == "__main__":
                         admin1= stg.admin1,
                         admin2= stg.admin2,
                         postcodes= stg.postcodes,
+                        admin1_id= stg.admin1_id,
+                        admin2_id= stg.admin2_id,
                         admin3_id= stg.admin3_id,
+                        admin4_id= stg.admin4_id,
                         admin3= stg.admin3,
                         fecha_actualizacion_origen = stg.fecha_actualizacion,
                         fecha_actualizacion = CURRENT_DATE
                 WHEN NOT MATCHED THEN
-                    INSERT ( ID, name, latitude,longitude, elevation, feature_code, 
-                    country_code, admin1_id, admin2_id, timezone, population, 
-                    country_id, country, admin1, admin2, postcodes, 
-                    admin3_id, admin3, fecha_actualizacion_origen, 
-                    fecha_actualizacion)
+                    INSERT (ID, name, latitude, longitude, elevation,
+                            feature_code, country_code, admin1_id, admin2_id, 
+                            admin3_id, admin4_id, timezone, population, postcodes, 
+                            country_id, country, admin1, admin2, admin3, 
+                            admin4 fecha_actualizacion_origen, 
+                            fecha_actualizacion)
                     VALUES (
                         stg.ID, 
                         stg.name, 
