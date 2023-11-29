@@ -110,11 +110,14 @@ if __name__ == "__main__":
     ### Datos localidad
 
     # Castear a str y formatear 'postcodes'
+    print(df_locs.columns)
     df_locs["postcodes"] = df_locs["postcodes"].astype(str)
-    df_locs["postcodes"] = df_locs["postcodes"].str.replace("[\"", "")
-    df_locs["postcodes"] = df_locs["postcodes"].str.replace("\"]", "")
+    df_locs["postcodes"] = df_locs["postcodes"].str.replace("['", "")
+    df_locs["postcodes"] = df_locs["postcodes"].str.replace("]", "")
+    df_locs["postcodes"] = df_locs["postcodes"].str.replace("'", "")
+    df_locs["postcodes"] = df_locs["postcodes"].str.replace('"', "")
     df_locs['postcodes'].replace('None', np.nan, inplace=True)
-
+    
     # Reemplazar None por nan en 'admin3'
     df_locs['admin3'].replace('None', np.nan, inplace=True)
 
