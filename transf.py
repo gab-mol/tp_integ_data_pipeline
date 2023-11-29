@@ -33,7 +33,9 @@ if __name__ == "__main__":
     )
     
     ##### Procesado #####
-
+    print("\nAplicando transformación de datos... \n\
+(consulte documentación: `README.md`)\n")
+    
     ### Datos meteorológicos
     
     # Eliminar columna de partición 
@@ -44,7 +46,7 @@ if __name__ == "__main__":
     df_meteor.time = df_meteor.time - pd.Timedelta(hours=3)
 
     # Formateo  y separación en fecha y hora (str / object)
-    df_meteor["date"] = df_meteor["time"].dt.strftime("%d/%m/%Y") #HINT:  Perhaps you need a different "datestyle" setting.
+    df_meteor["date"] = df_meteor["time"].dt.strftime("%d/%m/%Y") 
     df_meteor["time"] = df_meteor["time"].dt.strftime("%H:%M")
 
     # "winddirection_10m" (en grados N=0, sentido horario) a puntos 
@@ -118,11 +120,7 @@ if __name__ == "__main__":
 
     # agregar columna con fecha de origen registro
     df_locs["fecha_actualizacion"] = date.today()
-    print(
-        df_locs.dtypes,
-        df_locs.columns
-    )
-    #df_locs.to_excel("ver.xlsx")
+
     ##### cargar a Data WareHouse #####
 
     d_warehouse = PgSql()
@@ -130,6 +128,11 @@ if __name__ == "__main__":
     TABLA_MET_STG = TABLA_MET+"_stg"
     TABLA_LOC = "loc_proc"
     TABLA_LOC_STG = TABLA_LOC+"_stg"
+
+    # Datos Localidades ####
+    print("\n############################################################\n",
+    "######### Carga a Data Warehouse: Datos Localidades ####### \n"
+    )
 
     # tabla stage para scd1
     d_warehouse.crear_tb(
@@ -195,65 +198,70 @@ if __name__ == "__main__":
     #  actualizar tabla condicionalmente
     d_warehouse.ejec_query(f'''
         MERGE INTO {TABLA_LOC}
-                    USING {TABLA_LOC_STG} AS stg
-                    ON (stg.ID = {TABLA_LOC}.ID)
-                    WHEN MATCHED THEN
-                        UPDATE SET
-                            name= stg.name,
-                            latitude= stg.latitude,
-                            longitude= stg.longitude,
-                            elevation= stg.elevation,
-                            feature_code= stg.feature_code,
-                            country_code= stg.country_code,
-                            admin1_id= stg.admin1_id,
-                            admin2_id= stg.admin2_id,
-                            timezone= stg.timezone,
-                            population= stg.population,
-                            country_id= stg.country_id,
-                            country= stg.country,
-                            admin1= stg.admin1,
-                            admin2= stg.admin2,
-                            postcodes= stg.postcodes,
-                            admin3_id= stg.admin3_id,
-                            admin3= stg.admin3,
-                            fecha_actualizacion_origen = stg.fecha_actualizacion,
-                            fecha_actualizacion = CURRENT_DATE
-                    WHEN NOT MATCHED THEN
-                        INSERT ( ID, name, latitude,longitude, elevation, feature_code, 
-                        country_code, admin1_id, admin2_id, timezone, population, country_id, 
-                        country, admin1, admin2, postcodes, admin3_id, admin3, 
-                        fecha_actualizacion_origen, fecha_actualizacion)
-                        VALUES (
-                            stg.ID, 
-                            stg.name, 
-                            stg.latitude,
-                            stg.longitude,
-                            stg.elevation,
-                            stg.feature_code, 
-                            stg.country_code, 
-                            stg.admin1_id, 
-                            stg.admin2_id, 
-                            stg.timezone, 
-                            stg.population, 
-                            stg.country_id, 
-                            stg.country, 
-                            stg.admin1, 
-                            stg.admin2, 
-                            stg.postcodes, 
-                            stg.admin3_id, 
-                            stg.admin3,
-                            stg.fecha_actualizacion,
-                            CURRENT_DATE
-                        );
+                USING {TABLA_LOC_STG} AS stg
+                ON (stg.ID = {TABLA_LOC}.ID)
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        name= stg.name,
+                        latitude= stg.latitude,
+                        longitude= stg.longitude,
+                        elevation= stg.elevation,
+                        feature_code= stg.feature_code,
+                        country_code= stg.country_code,
+                        admin1_id= stg.admin1_id,
+                        admin2_id= stg.admin2_id,
+                        timezone= stg.timezone,
+                        population= stg.population,
+                        country_id= stg.country_id,
+                        country= stg.country,
+                        admin1= stg.admin1,
+                        admin2= stg.admin2,
+                        postcodes= stg.postcodes,
+                        admin3_id= stg.admin3_id,
+                        admin3= stg.admin3,
+                        fecha_actualizacion_origen = stg.fecha_actualizacion,
+                        fecha_actualizacion = CURRENT_DATE
+                WHEN NOT MATCHED THEN
+                    INSERT ( ID, name, latitude,longitude, elevation, feature_code, 
+                    country_code, admin1_id, admin2_id, timezone, population, 
+                    country_id, country, admin1, admin2, postcodes, 
+                    admin3_id, admin3, fecha_actualizacion_origen, 
+                    fecha_actualizacion)
+                    VALUES (
+                        stg.ID, 
+                        stg.name, 
+                        stg.latitude,
+                        stg.longitude,
+                        stg.elevation,
+                        stg.feature_code, 
+                        stg.country_code, 
+                        stg.admin1_id, 
+                        stg.admin2_id, 
+                        stg.timezone, 
+                        stg.population, 
+                        stg.country_id, 
+                        stg.country, 
+                        stg.admin1, 
+                        stg.admin2, 
+                        stg.postcodes, 
+                        stg.admin3_id, 
+                        stg.admin3,
+                        stg.fecha_actualizacion,
+                        CURRENT_DATE
+                    );
     ''')
-    
+
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
     print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_LOC}'\n")
     d_warehouse.impr_tabla(TABLA_LOC)
 
-    # Datos meteorológicos NOTA: creo que va a haber que crear una tabla stage y comparar claves primarias
-    print("\n##############################################################\n")
+    
+    # Datos meteorológicos ####
+    print("\n##############################################################\n",
+    "######### Carga a Data Warehouse: Datos meteorológicos ####### \n"
+    )
 
+    # Campos de tabla datos meteorológiocos
     campos_met = {
             "date" :                    "DATE",
             "time" :                    "TIME",
@@ -296,40 +304,46 @@ if __name__ == "__main__":
     d_warehouse.cargar_df(TABLA_MET_STG, tb_salida)
 
     # Agregar nuevos registros si no existen 
-    d_warehouse.ejec_query(f'''
-        MERGE INTO {TABLA_MET}
-                    USING {TABLA_MET_STG} AS stg
-                    ON (stg.date = {TABLA_MET}.date) AND  (stg.time = {TABLA_MET}.time)
-                    WHEN MATCHED THEN
-                        DO NOTHING
-                    WHEN NOT MATCHED THEN
-                        INSERT (date, time, city, country, api_loc_id, interval, 
-                        temperature_2m, relativehumidity_2m, apparent_temperature, 
-                        is_day, precipitation, rain, pressure_msl, windspeed_10m, 
-                        winddir_cardinal_10m, winddirection_10m, windgusts_10m)
-                        VALUES (
-                            stg.date, 
-                            stg.time, 
-                            stg.city, 
-                            stg.country, 
-                            stg.api_loc_id, 
-                            stg.interval, 
-                            stg.temperature_2m, 
-                            stg.relativehumidity_2m, 
-                            stg.apparent_temperature, 
-                            stg.is_day, 
-                            stg.precipitation, 
-                            stg.rain, 
-                            stg.pressure_msl, 
-                            stg.windspeed_10m, 
-                            stg.winddir_cardinal_10m, 
-                            stg.winddirection_10m, 
-                            stg.windgusts_10m
-                        );
-    
-    ''')
+    try:
+        d_warehouse.ejec_query(f'''
+            MERGE INTO {TABLA_MET}
+                        USING {TABLA_MET_STG} AS stg
+                        ON (stg.date = {TABLA_MET}.date) AND 
+                        (stg.time = {TABLA_MET}.time)
+                        WHEN MATCHED THEN
+                            DO NOTHING
+                        WHEN NOT MATCHED THEN
+                            INSERT (date, time, city, country, 
+                            api_loc_id, interval, temperature_2m, 
+                            relativehumidity_2m, apparent_temperature, 
+                            is_day, precipitation, rain, pressure_msl, 
+                            windspeed_10m, winddir_cardinal_10m, 
+                            winddirection_10m, windgusts_10m)
+                            VALUES (
+                                stg.date, 
+                                stg.time, 
+                                stg.city, 
+                                stg.country, 
+                                stg.api_loc_id, 
+                                stg.interval, 
+                                stg.temperature_2m, 
+                                stg.relativehumidity_2m, 
+                                stg.apparent_temperature, 
+                                stg.is_day, 
+                                stg.precipitation, 
+                                stg.rain, 
+                                stg.pressure_msl, 
+                                stg.windspeed_10m, 
+                                stg.winddir_cardinal_10m, 
+                                stg.winddirection_10m, 
+                                stg.windgusts_10m
+                            );
+        ''')
+        print(f"\nÉxito al insertar insertar nuevos registros meteorológicos en: {TABLA_MET}.")
+    except:
+        raise Exception("Error al ejecutar query para insertar registros nuevos meteorológicos")
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_MET_STG}''')
 
-    print(f"\nVERIFICAR:\n-Impresión desde base de datos-\n'{TABLA_MET}'\n")
+    print(f"\nVERIFICAR:\n-Impresión DESDE base de datos-\n'{TABLA_MET}'\n")
     d_warehouse.impr_tabla(TABLA_MET)
 

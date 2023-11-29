@@ -165,22 +165,8 @@ class Extrac:
         registro_df = pandas.json_normalize(dic_tiempo["current"])
         registro_df.time = pandas.to_datetime(registro_df.time)
         
-        #registro_df.insert(0, "hora", pandas.to_datetime(registro_df.time, format="%H:%M"))
         registro_df.insert(0, "fecha_partic", registro_df.time.dt.strftime('%m-%d-%y'))
         
-        #registro_df = registro_df.drop(columns=["time"])
-        
-        # Pasar (manualemente) hora a local argentina: GMT-3
-        # if h_loc:
-        #     print(registro_df["hora"].iloc[-1],"\n",type(registro_df["hora"].iloc[-1]))
-        #     h_loc = registro_df["hora"].iloc[-1] - pandas.Timedelta(hours=3)
-        #     registro_df.at[0,'hora'] = h_loc
-
-        # Columna ciudad (distinguir de homónimas: concatenado coord.)
-        # localidad = (self.ciudad+"|"+
-        #             str(round(self.latitud,1))+","+
-        #             str(round(self.longitud,1))
-        # )
         registro_df.insert(0, "api_loc_id", self.api_loc_id)
 
         return registro_df
@@ -264,7 +250,13 @@ datos? (ingresar: stop)\n\t> ")
 
 class PgSql:
 
-    '''Conexión com base OLAP postgreSQL.'''
+    '''Conexión con base postgreSQL.
+    Lee credenciales de base de datos del archivo `config.ini` 
+    en el directorio de trabajo.
+
+    Nota: constante `SQL_DB` controla clave de sección leída del archivo de config.
+    (empleada durante el desarrollo).
+    '''
 
     def __init__(self) -> None:
         RUTA_CFG = os.path.join(RUTA_DIR, "config.ini")
@@ -273,9 +265,9 @@ class PgSql:
 
         bd_cred = config[SQL_DB]
         usu, cont, host = bd_cred["user"], bd_cred["pwd"], bd_cred["host"]
-        puet, bd, self.squ = bd_cred["port"], bd_cred["db"], bd_cred["schema"]
+        puet, self.bd, self.squ = bd_cred["port"], bd_cred["db"], bd_cred["schema"]
 
-        url = f"postgresql://{usu}:{cont}@{host}:{puet}/{bd}?sslmode=require"
+        url = f"postgresql://{usu}:{cont}@{host}:{puet}/{self.bd}?sslmode=require"
 
         self.engine = sqlalchemy.create_engine(url,
                                 connect_args={"options": f"-c search_path={self.squ}"}
@@ -291,18 +283,15 @@ class PgSql:
                     raise Exception("ERROR AL CREAR ESQUEMA PARA TABLAS")
     
    
-    def crear_tb(self, nomb:str,cols_type:dict, id_auto=True, stg=False):
+    def crear_tb(self, nomb:str,cols_type:dict, id_auto=True):
         
         '''Crea la tabla en base de datos con el nombre 
-        y columnas/tipo dato especificado, `si esta NO existe`.
-
-        (!) Primera columna es ID clave primaria y autoincremental 
-        por defecto.
+        y columnas/tipo dato especificado, si esta NO existe.
 
         args
             nombre: str nombre de tabla
-            cols_type: dict claves=nombre.col / valores=tipo.dato
-            id_auto: controla si clave primaria es autoincremental o
+            cols_type: dict claves= nombre.col / valores = tipo.dato
+            id_auto: defoult: True. Controla si clave primaria es autoincremental o
             debe proporcionarse.'''
         
         D_l = [f"{k} {cols_type[k]}" for k in cols_type]
@@ -318,6 +307,8 @@ class PgSql:
                 con.execute(sqlalchemy.text(f"CREATE TABLE IF NOT EXISTS {nomb}(\n\
 {opc}\n{cols_q})"))
                 con.commit()
+            print(f"\nTabla: {nomb} (DB: {self.bd}; \
+schem: {self.squ}) = DISPONIBLE\n")
         except:
             Exception("PostgreSQL error")
         
@@ -328,7 +319,8 @@ class PgSql:
         args
             nomb: nombre de la tabla.
             df: dataframe a cargar.
-            method: {None, 'multi', callable},'''
+            method: {None, 'multi', 'callable'}, defoult: None. Parámetro de 
+            `pandas.DataFrame.to_sql`.'''
 
         try:
             with self.engine.connect() as con, con.begin():
@@ -345,72 +337,15 @@ class PgSql:
         except:
             raise Exception("Error de carga: pandas.Dataframe >> postgreSQL")
 
-    def cargar_df2(self, nomb:str, nomb_id:str, df:pandas.DataFrame, update:str):
-
-        '''Cargar dataframe a tabla especificada.
-
-        args
-            nomb: nombre de la tabla.
-            df: dataframe a cargar.
-            update: `append` para agregar registros a tabla. 
-            `scd1` para usar estrategia SCD1 de control de fecha de actualizaciones '''
-        ""
-        if update =="append":
-            try:
-                with self.engine.connect() as con, con.begin():
-                    df.to_sql(
-                        name=nomb,
-                        con=con,
-                        schema=self.squ,
-                        if_exists="append",
-                        index=False,
-                        method="multi",
-                        chunksize=1000
-                    )
-            except:
-                raise Exception("Error de carga: pandas.Dataframe >> postgreSQL")
-            
-        elif update == "scd1":
-            try:
-                with self.engine.connect() as con, con.begin():
-                    con.execute(sqlalchemy.text(f'''
-                        MERGE INTO {nomb}
-                        USING {nomb} AS tabla
-                        ON (tabla.{nomb_id} = tabla.id)
-                        WHEN MATCHED THEN
-                            UPDATE SET
-                                marca = celulares.marca,
-                                modelo = celulares.modelo,
-                                precio = celulares.precio,
-                                fecha_actualizacion_origen = celulares.fecha_actualizacion,
-                                fecha_actualizacion_dwh = CURRENT_DATE
-                        WHEN NOT MATCHED THEN
-                            INSERT (id, marca, modelo, precio, fecha_actualizacion_origen, fecha_actualizacion_dwh)
-                            VALUES (
-                                celulares.id,
-                                celulares.marca,
-                                celulares.modelo,
-                                celulares.precio,
-                                celulares.fecha_actualizacion,
-                                CURRENT_DATE
-                            );                    
-                    '''))
-                    df.to_sql(
-                        name=nomb,
-                        con=con,
-                        schema=self.squ,
-                        if_exists="append",
-                        index=False,
-                        method="multi",
-                        chunksize=1000
-                    )
-            except:
-                raise Exception("Error de carga: pandas.Dataframe >> postgreSQL")
-        
     def ejec_query(self, query:str, commit=True):
 
         '''Crea conexión con el motor instanciado y 
-        envia query.'''
+        envia query.
+
+        args
+            query: str con sentencia SQL.
+            commit: aplicar método `sqlalchemy.Connection.commit()`, defoult: True
+            '''
 
         try:
             with self.engine.connect() as con, con.begin():
@@ -423,7 +358,13 @@ class PgSql:
     def impr_tabla(self, nomb:str):
 
         '''Imprime todos los campos y registros de la tabla
-        especificada.'''
+        especificada (esta es transformada al completo en un
+        `pandas.Dataframe`).
+        
+        args
+            nomb: referenciar por nombre una tabla existente 
+            en base de datos.
+        '''
 
         with self.engine.connect() as con:
             df = pandas.read_sql_table(
