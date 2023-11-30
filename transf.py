@@ -116,7 +116,7 @@ if __name__ == "__main__":
         'country_id', 'country', 'admin1', 'admin2', 'admin3', 'admin4']
     
     campos_loc = list(df_locs.columns)
-    
+    print("Campos: ",campos_loc)
     for camp in max_campos:
         if camp not in campos_loc:
             df_locs[camp] = None
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     # Castear a str y formatear 'postcodes'
     print(df_locs.columns)
     df_locs["postcodes"] = df_locs["postcodes"].astype(str)
-    df_locs["postcodes"] = df_locs["postcodes"].str.replace("['", "")
+    df_locs["postcodes"] = df_locs["postcodes"].str.replace("[", "")
     df_locs["postcodes"] = df_locs["postcodes"].str.replace("]", "")
     df_locs["postcodes"] = df_locs["postcodes"].str.replace("'", "")
     df_locs["postcodes"] = df_locs["postcodes"].str.replace('"', "")
@@ -216,7 +216,7 @@ if __name__ == "__main__":
 
     #  cargar dataframe en tabla stage
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
-    df_locs.to_excel("ver.xlsx")
+    #df_locs.to_excel("ver.xlsx")
     d_warehouse.cargar_df(TABLA_LOC_STG, df_locs, method="multi")
 
     #  actualizar tabla condicionalmente
@@ -233,21 +233,18 @@ if __name__ == "__main__":
                         feature_code= stg.feature_code,
                         country_code= stg.country_code,
                         admin1_id= stg.admin1_id,
-                        admin2_id= stg.admin2_id,,
+                        admin2_id= stg.admin2_id,
                         admin3_id= stg.admin3_id,
                         admin4_id= stg.admin4_id,
                         timezone= stg.timezone,
                         population= stg.population,
+                        postcodes= stg.postcodes,
                         country_id= stg.country_id,
                         country= stg.country,
                         admin1= stg.admin1,
                         admin2= stg.admin2,
-                        postcodes= stg.postcodes,
-                        admin1_id= stg.admin1_id,
-                        admin2_id= stg.admin2_id,
-                        admin3_id= stg.admin3_id,
-                        admin4_id= stg.admin4_id,
                         admin3= stg.admin3,
+                        admin4= stg.admin3,
                         fecha_actualizacion_origen = stg.fecha_actualizacion,
                         fecha_actualizacion = CURRENT_DATE
                 WHEN NOT MATCHED THEN
@@ -255,7 +252,7 @@ if __name__ == "__main__":
                             feature_code, country_code, admin1_id, admin2_id, 
                             admin3_id, admin4_id, timezone, population, postcodes, 
                             country_id, country, admin1, admin2, admin3, 
-                            admin4 fecha_actualizacion_origen, 
+                            admin4, fecha_actualizacion_origen, 
                             fecha_actualizacion)
                     VALUES (
                         stg.ID, 
@@ -266,16 +263,18 @@ if __name__ == "__main__":
                         stg.feature_code, 
                         stg.country_code, 
                         stg.admin1_id, 
-                        stg.admin2_id, 
+                        stg.admin2_id,
+                        stg.admin3_id,
+                        stg.admin4_id,
                         stg.timezone, 
                         stg.population, 
+                        stg.postcodes,
                         stg.country_id, 
-                        stg.country, 
-                        stg.admin1, 
-                        stg.admin2, 
-                        stg.postcodes, 
-                        stg.admin3_id, 
+                        stg.country,
+                        stg.admin1,
+                        stg.admin2,
                         stg.admin3,
+                        stg.admin4,
                         stg.fecha_actualizacion,
                         CURRENT_DATE
                     );
