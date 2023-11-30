@@ -16,12 +16,13 @@ import sqlalchemy
 from numpy import nan
 
 RUTA_DIR = os.path.dirname(__file__)
-SQL_DB = "postgres_prueba"
+SQL_DB = "postgres_tpint"
 
 class DataLake:
 
     '''Crea estructura de dirs del datalake. 
-    Permite almecenar registros.'''
+    Permite almecenar registros. Lee el archivo 
+    **config.ini** del directorio de trabajo. '''
 
     # Verificar existencia de dir del lake
     DIR_LAND_MET = os.path.join(
@@ -46,10 +47,13 @@ class DataLake:
     @classmethod
     def leer_parq(self, opc:str) -> pandas.DataFrame:
         '''Leer datos.
-        
-        :regmeteor: para registro meteorol. 
-        :localid: para ciudades.
+
+        args
+            opc: {"regmeteor", "localid"} 
+                regmeteor: para registro meteorol.
+                localid: para ciudades.
         '''
+
         if opc== "regmeteor":
             try:
                 dat = pandas.read_parquet(self.DIR_LAND_MET)
@@ -79,9 +83,11 @@ class DataLake:
 
         '''Guardar dataframe como parquet en datalake.
         
-        :registro: DataFrame con registro nuevo
-        :partic: lista con columnas para partición
-        :adv: controla aviso de repetición de filas'''
+        args
+            registro: `pandas.DataFrame` con registro nuevo
+            partic: lista con columnas para partición
+            adv: controla aviso de repetición de filas
+            '''
         
         # Control primer rgistro
         if os.listdir(self.DIR_LAND_MET) == []:
@@ -114,8 +120,8 @@ REPETIDO \n(ESPERAR NUEVOS DATOS DESDE API - cada 900 seg - )")
 
         args
             registro: pandas.DataFrame a guardar en `.parquet`
-            ruta automaticamente tomada de constante `DIR_LAND_CIUD`
-            (>> Data Lake)
+                ruta automaticamente tomada de constante `DIR_LAND_CIUD`
+                (>> Data Lake)
         '''
         # Prevenir registros repetidos
         prev = DataLake.leer_parq("localid")
@@ -151,21 +157,22 @@ class Extrac:
 
     args
         id: identificador de la localidad 
-        (obtenido con búsqueda de Geocoding API)
         latitud: latitud de localidad 
-        (obtenido con búsqueda de Geocoding API)
         longitud: longitud de localidad 
-        (obtenido con búsqueda de Geocoding API)
-        '''
+    '''
     
     RUTA_CFG = os.path.join(RUTA_DIR, "config.ini")
     config = configparser.ConfigParser()
     config.read(RUTA_CFG)
 
     @staticmethod
-    def _pedido_tiempo(endpoint) -> dict:
+    def _pedido_tiempo(endpoint:str) -> dict:
 
-        '''Hacer pedido a API'''
+        '''Hacer pedido a API.
+        
+        args
+            endpoint: endpoint de la API.
+        '''
 
         try:
             respuesta = requests.get(endpoint)

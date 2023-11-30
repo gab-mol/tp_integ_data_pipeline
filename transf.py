@@ -37,7 +37,7 @@ if __name__ == "__main__":
 (consulte documentación: `README.md`)\n")
     
     ### Datos meteorológicos
-    
+
     # Eliminar columna de partición 
     df_meteor = df_meteor.drop(columns=["fecha_partic"])
     
@@ -106,6 +106,7 @@ if __name__ == "__main__":
         'is_day','precipitation', 'rain', 'pressure_msl', 'windspeed_10m',
        'winddir_cardinal_10m','winddirection_10m', 'windgusts_10m']]
 
+    print("\n>>> Procesados datos meteorológicos\n.")
 
     ### Datos localidad
     
@@ -129,6 +130,7 @@ if __name__ == "__main__":
     # agregar columna con fecha de origen registro
     df_locs["fecha_actualizacion"] = date.today()
 
+    print("\n>>> Procesados datos localidad.\n.")
     
     ##### cargar a Data WareHouse #####
 
