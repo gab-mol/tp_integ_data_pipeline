@@ -109,12 +109,11 @@ if __name__ == "__main__":
 
     ### Datos localidad
     
-    # Reeplazar 'nodatos' por None
-    for c in df_locs.columns:
-        df_locs[c].replace('nodatos', None, inplace=True)
+    # # Reeplazar 'nodatos' por None
+    # for c in df_locs.columns:
+    #     df_locs[c].replace('nodatos', None, inplace=True)
     
     # Castear a str y formatear 'postcodes'
-    print(df_locs.columns)
     df_locs["postcodes"] = df_locs["postcodes"].astype(str)
     df_locs["postcodes"] = df_locs["postcodes"].str.replace("[", "")
     df_locs["postcodes"] = df_locs["postcodes"].str.replace("]", "")
@@ -126,11 +125,11 @@ if __name__ == "__main__":
     for i in ["admin1","admin2","admin3","admin4"]:
         df_locs[i].replace('None', np.nan, inplace=True)
         df_locs[i] = df_locs[i].astype(str)
-        
+
     # agregar columna con fecha de origen registro
     df_locs["fecha_actualizacion"] = date.today()
-    print("FIN FORMATEO:",df_locs)
 
+    
     ##### cargar a Data WareHouse #####
 
     d_warehouse = PgSql()
@@ -155,12 +154,12 @@ if __name__ == "__main__":
                 'elevation':"FLOAT",
                 'feature_code':"TEXT",
                 'country_code':"TEXT",
-                'admin1_id':"FLOAT",
-                'admin2_id':"FLOAT",
-                'admin3_id':"FLOAT",
-                'admin4_id':"FLOAT",
+                'admin1_id':"TEXT",
+                'admin2_id':"TEXT",
+                'admin3_id':"TEXT",
+                'admin4_id':"TEXT",
                 'timezone':"TEXT",
-                'population':"INT",
+                'population':"FLOAT",
                 'postcodes':"TEXT",
                 'country_id':"INT",
                 'country':"TEXT",
@@ -184,12 +183,12 @@ if __name__ == "__main__":
                 'elevation':"FLOAT",
                 'feature_code':"TEXT",
                 'country_code':"TEXT",
-                'admin1_id':"FLOAT",
-                'admin2_id':"FLOAT",
-                'admin3_id':"FLOAT",
-                'admin4_id':"FLOAT",
+                'admin1_id':"TEXT",
+                'admin2_id':"TEXT",
+                'admin3_id':"TEXT",
+                'admin4_id':"TEXT",
                 'timezone':"TEXT",
-                'population':"INT",
+                'population':"FLOAT",
                 'postcodes':"TEXT",
                 'country_id':"INT",
                 'country':"TEXT",
@@ -207,7 +206,6 @@ if __name__ == "__main__":
 
     #  cargar dataframe en tabla stage
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
-    df_locs.to_excel("ver.xlsx")
     d_warehouse.cargar_df(TABLA_LOC_STG, df_locs, method="multi")
 
     #  actualizar tabla condicionalmente
