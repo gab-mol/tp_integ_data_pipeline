@@ -325,6 +325,7 @@ schem: {self.squ}) = DISPONIBLE\n")
         try:
             with self.engine.connect() as con, con.begin():
                 print("Conectando con postgreSQL...")
+                print(df)
                 df.to_sql(
                     name=nomb,
                     con=con,
