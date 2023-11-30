@@ -1,7 +1,7 @@
 '''
 ### Tercera entrega: Curso Data Engineer - UTN ###
-
-    - Módulo con ejecución de pasos de Extracción y Almacenamiento (Data Lake) - 
+    Ejecución de pasos de Extracción 
+    y Almacenamiento (Data Lake).
 
 Alumno: Molina Gabriel
 '''
@@ -28,7 +28,7 @@ Resultados de búsqueda:\n")
 
     # Guarda búsquedas por nombre
     datalake = DataLake()    
-    datalake.a_parquet(loc)
+    datalake.a_parquet_full(loc)
     
     print("\n***** ***** ***** ***** ***** *****\n")
     print("--- Info: localidad elegida ---\n")
@@ -61,4 +61,4 @@ extracción, ingresar: <cualquier otra tecla> \n\n\n>: ")
         )
         print("\n******\nRegistros previos:\n", datalake.leer_parq("regmeteor"),
             "\n******")
-        datalake.a_parquet_met(registro=registro, partic=["fecha_partic"])
+        datalake.a_parquet_inc(registro=registro, partic=["fecha_partic"])

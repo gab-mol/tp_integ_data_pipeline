@@ -1,7 +1,6 @@
 '''
 ### Tercera entrega: Curso Data Engineer - UTN ###
-
-    - Módulo con lógica para pipe line - 
+    Clases con lógica para Data Pipe Line - 
 
 Alumno: Molina Gabriel
 '''
@@ -46,7 +45,7 @@ class DataLake:
 
     @classmethod
     def leer_parq(self, opc:str) -> pandas.DataFrame:
-        '''Leer datos.
+        '''Leer datos desde el Data Lake.
 
         args
             opc: {"regmeteor", "localid"} 
@@ -78,7 +77,7 @@ class DataLake:
 
         return dat
 
-    def a_parquet_met(self, registro:pandas.DataFrame, partic:list, 
+    def a_parquet_inc(self, registro:pandas.DataFrame, partic:list, 
             adv=True):
 
         '''Guardar dataframe como parquet en datalake.
@@ -114,9 +113,10 @@ REPETIDO \n(ESPERAR NUEVOS DATOS DESDE API - cada 900 seg - )")
                 partition_cols=partic
                 )
 
-    def a_parquet(self, registro:pandas.DataFrame):
+    def a_parquet_full(self, registro:pandas.DataFrame):
 
-        '''Particiona por ciudad. Sobrescribe tabla previa.
+        '''Guardado en `.parquet`. 
+        Este método está destinado a la extracción batch full.
 
         args
             registro: pandas.DataFrame a guardar en `.parquet`
@@ -278,12 +278,15 @@ class Autom:
         
     def _bucle_descarga(self, intervalo:int):
         
-        '''Método target para el hilo '''
+        '''Método target para el hilo
+        args
+            intervalo: tiempo en segundos entre ejecuciones del bucle.
+            '''
 
         # Extracción incremental datos de actuales aire y variables meteor.
         while True:
             registro = self.extract.regist_tiempo_df()
-            self.datalake.a_parquet_met(
+            self.datalake.a_parquet_inc(
                 registro=registro, 
                 partic=["fecha_partic"], 
                 adv=False)
@@ -361,7 +364,7 @@ class PgSql:
             nombre: str nombre de tabla
             cols_type: dict claves= nombre.col / valores = tipo.dato
             id_auto: defoult: True. Controla si clave primaria es autoincremental o
-            debe proporcionarse.'''
+            debe proporcionarse. (obsoleto)'''
         
         D_l = [f"{k} {cols_type[k]}" for k in cols_type]
         cols_q = ",\n".join(D_l)
@@ -388,8 +391,8 @@ schem: {self.squ}) = DISPONIBLE\n")
         args
             nomb: nombre de la tabla.
             df: dataframe a cargar.
-            method: {None, 'multi', 'callable'}, defoult: None. Parámetro de 
-            `pandas.DataFrame.to_sql`.'''
+            method: {None, 'multi', 'callable'}, defoult: None. 
+                Parámetro de `pandas.DataFrame.to_sql`.'''
 
         try:
             with self.engine.connect() as con, con.begin():
@@ -414,7 +417,8 @@ schem: {self.squ}) = DISPONIBLE\n")
 
         args
             query: str con sentencia SQL.
-            commit: aplicar método `sqlalchemy.Connection.commit()`, defoult: True
+            commit: aplicar método `sqlalchemy.Connection.commit()`
+                defoult: True
             '''
 
         try:

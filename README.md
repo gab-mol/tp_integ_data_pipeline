@@ -110,8 +110,8 @@ Crea estructura de directorios del data lake al instanciarse.
             └ regmeteor (dir. registros meteor. partic: fecha)
 
 Métodos:  
-- **a_parquet_met** permite guardar los registros en capa landing/regmeteor. Agrega registros con fecha como partición dentro del directorio. Controla que no se repitan las filas (puede ocurrir si ejecuta el modo descarga única más de una vez en menos de 15 minutos).
-- **a_parquet** guarda, en capa landing/localid. Controla que no se repitan las filas
+- **a_parquet_inc** permite guardar los registros en capa landing/regmeteor. Agrega registros con fecha como partición dentro del directorio. Controla que no se repitan las filas (puede ocurrir si ejecuta el modo descarga única más de una vez en menos de 15 minutos).
+- **a_parquet_full** guarda, en capa landing/localid. Controla que no se repitan las filas.
 - **leer_parq** permite cargar registros previos desde el datalake.
 
 ### clase PgSql
