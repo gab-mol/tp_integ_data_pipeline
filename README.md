@@ -11,7 +11,7 @@
 
 **NOTA:** se intentó implementar una funcionalidad (opcional) de automatización para esta extracción.
 
-## Tercera Entrega: Extracción + Almacenamiento + **Precesamiento**
+## Entrega definitiva: Extracción + Almacenamiento (Data Lake) + **Precesamiento** (y carga en Datawarehause posgreSQL)
 ### NOTAS sobre ejecución
 
 #### Información e interacción `por terminal`
@@ -25,6 +25,24 @@
 
    
 **Archivo de configuración `config.ini`**: Contiene los URLs para las API, y las credenciales de conexión con la base de Datos postgreSQL asignada (_ORION_).
+
+**Secciones y variables almacenadas:**
+
+    [endpoint]
+    tiempo = URL API open-meteo
+    localidad = URL geocoding-API
+
+    [parametros]
+    tiempo_actual = cadena de parámetros como se indica en documentación de API open-meteo
+
+    [postgres_tpint]
+    alias = alias base de datos
+    host = host base de datos
+    port = puerto base de datos
+    db = nombre base de datos
+    user = usuario base de datos
+    pwd = contraseña base de datos
+    schema = esquema base de datos
 
 ### Extracción batch full (Geocoding API)
 
