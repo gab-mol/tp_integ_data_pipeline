@@ -98,8 +98,8 @@ class DataLake:
             com_fec = str(registro['time'].iloc[-1]) == str(prev['time'].iloc[-1])
             
             if com_fec:
-                if adv: print("ADVERTENCIA: REGISTRO REPETIDO \n\
-(ESPERAR NUEVOS DATOS DESDE API - cada 900 seg - )")
+                if adv: print("ADVERTENCIA: REGISTRO METEOROLÓGICO \
+REPETIDO \n(ESPERAR NUEVOS DATOS DESDE API - cada 900 seg - )")
             else:
                 registro.to_parquet(
                 path=self.DIR_LAND_MET, 
@@ -117,29 +117,14 @@ class DataLake:
             ruta automaticamente tomada de constante `DIR_LAND_CIUD`
             (>> Data Lake)
         '''
-        
-        #archivo = os.path.join(self.DIR_LAND_CIUD,"localidades.parquet")
+        # Prevenir registros repetidos
+        prev = DataLake.leer_parq("localid")
 
-        # # API BORRA los campos vacíos: agregar nulos para consitencia
-        # max_campos = ['id', 'name', 'latitude', 'longitude', 'elevation',
-        #     'feature_code', 'country_code', 'admin1_id', 'admin2_id', 
-        #     'admin3_id', 'admin4_id', 'timezone', 'population', 'postcodes', 
-        #     'country_id', 'country', 'admin1', 'admin2', 'admin3', 'admin4']
-        
-        # campos_loc = list(registro.columns)
+        rep = []
 
-        # # Evitar 'TypeError: NoneType Object Is Not Iterable'
-        # #   (no puedo usar None para rellenar)
-        # for camp in max_campos:
-        #     if camp not in campos_loc:
-        #         registro[camp] = 'nodatos'
-        
-        # # Evitar errores de tipo de datos
-        # for c in ["admin1_id","admin2_id","admin3_id","admin4_id"]:
-        #     registro[c].astype(str)
-
-        # # reordenar
-        # registro = registro[max_campos]
+        if prev is not None:
+            for r in list(registro['id']):
+                if r in list(prev['id']): rep.append(True)
 
         # Evitar error 'FileNotFoundError'
         if not os.path.exists(self.arch_loc):
@@ -147,16 +132,16 @@ class DataLake:
         else:
             append = True
 
-        for c in registro.columns:
-
-            print(registro[c])
-
         # Guardado en parquet
-        registro.to_parquet(
-            path=self.arch_loc,
-            append=append,
-            engine="fastparquet"
-        )
+        if True not in rep:
+            registro.to_parquet(
+                path=self.arch_loc,
+                append=append,
+                engine="fastparquet"
+            )
+        else:
+            print("\nAVISO: Resultado de búsqueda de localidades ya \
+almacenado en Data Lake\n")
 
 
 class Extrac:
@@ -189,6 +174,9 @@ class Extrac:
             raise Exception("Error de conexión: Weather Forecast API")
         
         dic_tiempo = respuesta.json()
+
+        if "error" in list(dic_tiempo.keys()): 
+            raise Exception("Error en respuesta de API")
 
         return dic_tiempo
 
@@ -242,7 +230,7 @@ class Extrac:
         dic_ciud = respuesta.json()
         
         result = pandas.json_normalize(dic_ciud["results"])
-        print("\nTIPOS:\n",result.dtypes,"\n")
+
         # API BORRA los campos vacíos del json: agregar nulos para consitencia
         max_campos = ['id', 'name', 'latitude', 'longitude', 'elevation',
             'feature_code', 'country_code', 'admin1_id', 'admin2_id', 
@@ -264,8 +252,6 @@ class Extrac:
         for c in ["admin1","admin2","admin3","admin4"]:
             result[c] = result[c].astype(str)
 
-
-        print("\nTIPOS DESPUES:\n",result.dtypes,"\n")
         # reordenar
         result = result[max_campos]
 

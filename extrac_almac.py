@@ -18,9 +18,14 @@ if __name__ == "__main__":
     print(f"Extracción de información geografica (full)\n EJ: {localid}")
     
     loc = Extrac.ciudad_df(localid, nres=10)
-    print(loc)
     loc_id = loc["id"]
-    
+    lat = loc["latitude"].iloc[0]
+    long = loc["longitude"].iloc[0]
+
+    print(f"\n! Por defecto tomado primer resultado ! | Lat: {lat} y Long: {long}\n\
+Resultados de búsqueda:\n")
+    print(loc)
+
     # Guarda búsquedas por nombre
     datalake = DataLake()    
     datalake.a_parquet(loc)
@@ -37,7 +42,7 @@ if __name__ == "__main__":
     print(f"\nExtracción de información meteorológica actual \
 (incremental)\n EJ: {localid}\n")
 
-    extraccion = Extrac(loc_id, latitud=-34.92145,longitud=-57.95453)
+    extraccion = Extrac(loc_id, latitud=lat, longitud=long)
     
     automat = input("Para ejecutar muestra de extracción \
 automatizada, ingresar: a \nPara ejecutar solo una iteración de \
@@ -51,7 +56,7 @@ extracción, ingresar: <cualquier otra tecla> \n\n\n>: ")
         print("\nEXTRACCIÓN registro tiempo actual\n")
         registro = extraccion.regist_tiempo_df()
         print("\nREGISTRO DESCARGADO:\n",
-            "- Hora convertida de GMT+0 a GMT-3 (local, ARG) -\n", 
+            "- Hora en GMT+0 -\n", 
             registro
         )
         print("\n******\nRegistros previos:\n", datalake.leer_parq("regmeteor"),
