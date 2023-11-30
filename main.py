@@ -13,7 +13,7 @@ import pandas
 import time
 import threading
 import sqlalchemy
-
+from numpy import nan
 
 RUTA_DIR = os.path.dirname(__file__)
 SQL_DB = "postgres_prueba"
@@ -25,11 +25,11 @@ class DataLake:
 
     # Verificar existencia de dir del lake
     DIR_LAND_MET = os.path.join(
-        RUTA_DIR, "meteor_data/landing/regmeteor"
+        RUTA_DIR, "meteor_data\\landing\\regmeteor"
     )
 
     DIR_LAND_CIUD = os.path.join(
-        RUTA_DIR, "meteor_data/landing/localid"
+        RUTA_DIR, "meteor_data\\landing\\localid"
     )
 
     if not os.path.exists(DIR_LAND_MET): 
@@ -37,6 +37,8 @@ class DataLake:
 
     if not os.path.exists(DIR_LAND_CIUD): 
         os.makedirs(DIR_LAND_CIUD)
+
+    arch_loc = os.path.join(DIR_LAND_CIUD,"localidades.parquet")
 
     def __init__(self) -> None:
         pass
@@ -55,7 +57,7 @@ class DataLake:
                 dat = None
         elif opc=="localid":
             try:            
-                dat = pandas.read_parquet(self.DIR_LAND_CIUD)
+                dat = pandas.read_parquet(self.arch_loc)
             except:
                 dat = None
         else:
@@ -108,20 +110,68 @@ class DataLake:
 
     def a_parquet(self, registro:pandas.DataFrame):
 
-        '''Particiona por ciudad. Sobrescribe tabla previa.'''
+        '''Particiona por ciudad. Sobrescribe tabla previa.
+
+        args
+            registro: pandas.DataFrame a guardar en `.parquet`
+            ruta automaticamente tomada de constante `DIR_LAND_CIUD`
+            (>> Data Lake)
+        '''
         
-        archivo = os.path.join(self.DIR_LAND_CIUD,"localidades.parquet")
+        #archivo = os.path.join(self.DIR_LAND_CIUD,"localidades.parquet")
+
+        # # API BORRA los campos vacíos: agregar nulos para consitencia
+        # max_campos = ['id', 'name', 'latitude', 'longitude', 'elevation',
+        #     'feature_code', 'country_code', 'admin1_id', 'admin2_id', 
+        #     'admin3_id', 'admin4_id', 'timezone', 'population', 'postcodes', 
+        #     'country_id', 'country', 'admin1', 'admin2', 'admin3', 'admin4']
         
+        # campos_loc = list(registro.columns)
+
+        # # Evitar 'TypeError: NoneType Object Is Not Iterable'
+        # #   (no puedo usar None para rellenar)
+        # for camp in max_campos:
+        #     if camp not in campos_loc:
+        #         registro[camp] = 'nodatos'
+        
+        # # Evitar errores de tipo de datos
+        # for c in ["admin1_id","admin2_id","admin3_id","admin4_id"]:
+        #     registro[c].astype(str)
+
+        # # reordenar
+        # registro = registro[max_campos]
+
+        # Evitar error 'FileNotFoundError'
+        if not os.path.exists(self.arch_loc):
+            append = False
+        else:
+            append = True
+
+        for c in registro.columns:
+
+            print(registro[c])
+
+        # Guardado en parquet
         registro.to_parquet(
-            path=archivo,
-            append=False,
+            path=self.arch_loc,
+            append=append,
             engine="fastparquet"
         )
 
 
 class Extrac:
     
-    '''Extracción.'''
+    '''Extracción: URL almacenados en archivo de configuración 
+    `config.ini`.
+
+    args
+        id: identificador de la localidad 
+        (obtenido con búsqueda de Geocoding API)
+        latitud: latitud de localidad 
+        (obtenido con búsqueda de Geocoding API)
+        longitud: longitud de localidad 
+        (obtenido con búsqueda de Geocoding API)
+        '''
     
     RUTA_CFG = os.path.join(RUTA_DIR, "config.ini")
     config = configparser.ConfigParser()
@@ -153,7 +203,7 @@ class Extrac:
         param = self.config["parametros"]["tiempo_actual"]
         self.ENDPOINT_TIEMPO = API+ubic+param
 
-    def regist_tiempo_df(self) -> pandas.DataFrame: #h_loc=True
+    def regist_tiempo_df(self) -> pandas.DataFrame:
         
         '''Extracción. Variables de meteorológicas 
         actuales en localidad.'''
@@ -192,6 +242,32 @@ class Extrac:
         dic_ciud = respuesta.json()
         
         result = pandas.json_normalize(dic_ciud["results"])
+        print("\nTIPOS:\n",result.dtypes,"\n")
+        # API BORRA los campos vacíos del json: agregar nulos para consitencia
+        max_campos = ['id', 'name', 'latitude', 'longitude', 'elevation',
+            'feature_code', 'country_code', 'admin1_id', 'admin2_id', 
+            'admin3_id', 'admin4_id', 'timezone', 'population', 'postcodes', 
+            'country_id', 'country', 'admin1', 'admin2', 'admin3', 'admin4']
+        
+        campos_loc = list(result.columns)
+
+        # Evitar 'TypeError: NoneType Object Is Not Iterable'
+        #   (no puedo usar None para rellenar)
+        for camp in max_campos:
+            if camp not in campos_loc:
+                result[camp] = nan
+        
+        # Evitar errores de tipo de datos
+        for c in ["admin1_id","admin2_id","admin3_id","admin4_id"]:
+            result[c] = result[c].astype(str)
+
+        for c in ["admin1","admin2","admin3","admin4"]:
+            result[c] = result[c].astype(str)
+
+
+        print("\nTIPOS DESPUES:\n",result.dtypes,"\n")
+        # reordenar
+        result = result[max_campos]
 
         return result
 

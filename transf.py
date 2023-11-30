@@ -109,20 +109,9 @@ if __name__ == "__main__":
 
     ### Datos localidad
     
-    # API BORRA los campos vacíos: verificar por consitencia
-    max_campos = ['id', 'name', 'latitude', 'longitude', 'elevation',
-        'feature_code', 'country_code', 'admin1_id', 'admin2_id', 
-        'admin3_id', 'admin4_id', 'timezone', 'population', 'postcodes', 
-        'country_id', 'country', 'admin1', 'admin2', 'admin3', 'admin4']
-    
-    campos_loc = list(df_locs.columns)
-    print("Campos: ",campos_loc)
-    for camp in max_campos:
-        if camp not in campos_loc:
-            df_locs[camp] = None
-            
-    # reordenar
-    df_locs = df_locs[max_campos]
+    # Reeplazar 'nodatos' por None
+    for c in df_locs.columns:
+        df_locs[c].replace('nodatos', None, inplace=True)
     
     # Castear a str y formatear 'postcodes'
     print(df_locs.columns)
@@ -136,10 +125,12 @@ if __name__ == "__main__":
     # Reemplazar None por nan en 'admin'
     for i in ["admin1","admin2","admin3","admin4"]:
         df_locs[i].replace('None', np.nan, inplace=True)
-
+        df_locs[i] = df_locs[i].astype(str)
+        
     # agregar columna con fecha de origen registro
     df_locs["fecha_actualizacion"] = date.today()
     print("FIN FORMATEO:",df_locs)
+
     ##### cargar a Data WareHouse #####
 
     d_warehouse = PgSql()
@@ -170,7 +161,7 @@ if __name__ == "__main__":
                 'admin4_id':"FLOAT",
                 'timezone':"TEXT",
                 'population':"INT",
-                'postcodes':"INT",
+                'postcodes':"TEXT",
                 'country_id':"INT",
                 'country':"TEXT",
                 'admin1':"TEXT",
@@ -199,7 +190,7 @@ if __name__ == "__main__":
                 'admin4_id':"FLOAT",
                 'timezone':"TEXT",
                 'population':"INT",
-                'postcodes':"INT",
+                'postcodes':"TEXT",
                 'country_id':"INT",
                 'country':"TEXT",
                 'admin1':"TEXT",
@@ -216,7 +207,7 @@ if __name__ == "__main__":
 
     #  cargar dataframe en tabla stage
     d_warehouse.ejec_query(f'''TRUNCATE TABLE {TABLA_LOC_STG}''')
-    #df_locs.to_excel("ver.xlsx")
+    df_locs.to_excel("ver.xlsx")
     d_warehouse.cargar_df(TABLA_LOC_STG, df_locs, method="multi")
 
     #  actualizar tabla condicionalmente
