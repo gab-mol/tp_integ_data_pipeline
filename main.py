@@ -267,7 +267,12 @@ class Extrac:
 
 class Autom:
     
-    '''Automatización de extracción.'''
+    '''Función - opcional - de automatización de extracción.
+    
+    args
+        extract: recibe instancia de clase `Extrac`.
+        datalake: recibe instancia de clase `DataLake`.
+    '''
 
     estado_des = False
 
