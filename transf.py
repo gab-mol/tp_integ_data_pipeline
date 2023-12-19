@@ -67,11 +67,11 @@ if __name__ == "__main__":
         elif grados == 90:
             return "W"
         elif grados > 90 and grados < 180:
-            return "SO"
+            return "SE"
         elif grados == 180:
             return "S"
         elif grados >  180 and grados < 270:
-            return "SE"
+            return "SO"
         elif grados == 270:
             return "E"
         else:
