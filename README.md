@@ -72,6 +72,9 @@ Se almacenan las variables meteorológicas correspondientes a las coordenadas es
 - Pasar None a NaN
 
 ## Carga a Data Warehouse
+> **NOTA**  
+Para los propósitos del curso para el que fue desarrollada esta aplicación, se empleó un servicio gratuito provisto por [Aiven](https://aiven.io/) para crear una base de datos online que funcionara como Data Warehouse para el ejercicio.
+
 Se emplean credenciales de base de datos proporcionadas, almacenadas en `config.ini`, para crear las tablas:
 > **Esquema `molina_gabriel`**
 > - `meteor_proc` (datos meteorológicos) clave primaria compuesta:  `date` y `time`
